@@ -120,8 +120,3 @@ Run `pseudo-bulk degs.R` for pseudobulk DEG analysis, `Infercnv.R` for copy numb
 This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. See [LICENSE](https://www.gnu.org/licenses/gpl-3.0.html) for details.
 
 ---
-
-## Contact
-
-For questions or correspondence regarding the code, please contact:
-**Naisarg Patel** — naisargbpatel14 [at] gmail [dot] com
