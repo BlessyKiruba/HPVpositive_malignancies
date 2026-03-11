@@ -22,17 +22,29 @@ HPVpositive_malignancies/
 │
 
 ├── DEG_Code.R             # Differential gene expression analysis
+
 ├── WGCNA.R                # Co-expression network analysis
+
 ├── pseudobulk_degs.R      # Pseudobulk DEG analysis from scRNA-seq
+
 ├── Infercnv.R             # Copy number variation inference from scRNA-seq
+
 ├── cell_chat.R            # Cell-cell communication analysis
+
+
 │
+
 ├── RF_single_feature.py   # Random Forest classifier
+
 ├── SVM_single_feature.py  # Support Vector Machine classifier
+
 ├── LR_single_feature.py   # Logistic Regression classifier
+
 ├── KNN_single_feature.py  # K-Nearest Neighbor classifier
+
 ├── LGBM_single_feature.py # LightGBM classifier
+
 ├── MLP_single_feature.py  # Neural network classifier
-├── MLP_single_feature.py  # Neural network classifier
+
 
 
