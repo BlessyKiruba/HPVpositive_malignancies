@@ -20,8 +20,6 @@ These analyses collectively identify conserved oncogenic mechanisms across HPV-d
 HPVpositive_malignancies/
 │
 ├── DEG_Code.R                # Differential gene expression analysis
-|
-|
 ├── WGCNA.R                   # Co-expression network analysis
 ├── pseudobulk_degs.R         # Pseudobulk DEG analysis from scRNA-seq
 ├── Infercnv.R                # Copy number variation inference from scRNA-seq
