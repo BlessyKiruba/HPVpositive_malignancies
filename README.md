@@ -4,7 +4,7 @@
 
 Human papillomavirus (HPV) is a major global health concern responsible for nearly all cervical cancers and a growing proportion of head and neck cancers. Although these malignancies share HPV-driven molecular mechanisms, conserved oncogenic pathways and shared biomarkers across cancer types remain incompletely understood.
 
-This repository contains the full computational workflow used to identify shared epithelial gene signatures across HPV-positive cervical cancer (CC) and head and neck cancer (HNC) using an integrative multi-omics framework combining bulk transcriptomics, network analysis, machine learning, and single-cell RNA sequencing.
+This repository contains the full computational workflow used to identify shared epithelial gene signatures across HPV-positive cervical cancer (CC) and head and neck cancer (HNC) using an integrative multi-omics framework combining bulk transcriptomics, network analysis, model-free gene separability, multivariate panel selection, and single-cell RNA sequencing.
 
 > **Key finding:** A conserved four-gene signature — **ASF1B, DTL, CDKN2A, CLSPN** — is consistently upregulated in HPV-associated tumors and enriched within epithelial cells of HPV-positive malignancies.
 
@@ -26,10 +26,13 @@ The analysis pipeline integrates the following computational approaches in seque
 |------|--------|-----------|
 | 1 | Differential Gene Expression (DEG) Analysis | `DEG_Code.R` |
 | 2 | Weighted Gene Co-expression Network Analysis (WGCNA) | `WGCNA.R` |
-| 3 | Machine Learning-based Feature Selection | `RF_single_feature.py`, `SVM_single_feature.py`, `LR_single_feature.py`, `KNN_single_feature.py`, `LGBM_single_feature.py`, `MLP_single_feature.py` |
-| 4 | Single-cell RNA-seq Validation (Pseudobulk DEG) | `pseudo-bulk degs.R` |
-| 5 | Copy Number Variation Inference (inferCNV) | `Infercnv.R` |
-| 6 | Tumor Microenvironment & Cell–Cell Communication | `cell chat.R` |
+| 3 | Model-free Per-gene Separability (CC/HNC consistency) | `gene_separability.py` |
+| 4 | Multivariate Gene Panel Selection + Panel Size Sweep | `gene_panel_selection.py`, `panel_size_sweep.py`, `plot_panel_sweep.py` |
+| 5 | External GEO Validation of Selected Panel | `geo_external_test.py` |
+| 6 | Manuscript Figure Generation | `make_figures.py` |
+| 7 | Single-cell RNA-seq Validation (Pseudobulk DEG) | `pseudo-bulk degs.R` |
+| 8 | Copy Number Variation Inference (inferCNV) | `Infercnv.R` |
+| 9 | Tumor Microenvironment & Cell–Cell Communication | `cell chat.R` |
 
 ---
 
@@ -44,12 +47,13 @@ HPVpositive_malignancies/
 ├── Infercnv.R               # Copy number variation inference from scRNA-seq (inferCNV)
 ├── cell chat.R              # Cell–cell communication analysis (CellChat)
 │
-├── RF_single_feature.py     # Random Forest classifier (single-feature evaluation)
-├── SVM_single_feature.py    # Support Vector Machine classifier
-├── LR_single_feature.py     # Logistic Regression classifier
-├── KNN_single_feature.py    # K-Nearest Neighbor classifier
-├── LGBM_single_feature.py   # LightGBM classifier
-└── MLP_single_feature.py    # Multi-Layer Perceptron (neural network) classifier
+├── standardise.py           # Standardises labels/columns and writes CC_data.csv + HNC_data.csv
+├── gene_separability.py     # Model-free per-gene separability, FDR, and cross-cohort consistency
+├── gene_panel_selection.py  # Elastic-net stability + mRMR composite ranking for compact panel selection
+├── panel_size_sweep.py      # Sweep panel size (k=1..all genes) and evaluate transfer performance
+├── plot_panel_sweep.py      # Plots panel sweep metrics (AUC/BalAcc/CV)
+├── geo_external_test.py     # External validation on independent GEO cohorts
+└── make_figures.py          # Manuscript-ready ROC/PR, boxplots, stability, and confusion figures
 ```
 
 ---
@@ -68,7 +72,7 @@ devtools::install_github("sqjin/CellChat")
 ### Python (≥ 3.8)
 
 ```bash
-pip install pandas numpy scikit-learn lightgbm tqdm
+pip install pandas numpy scipy scikit-learn matplotlib openpyxl
 ```
 
 ---
@@ -81,8 +85,12 @@ The scripts expect the following input files (not included in the repository):
 |------|---------|-------------|
 | `count_matrix.xlsx` | `DEG_Code.R` | Raw count matrix with a `SYMBOL` column |
 | `Metadata.xlsx` | `DEG_Code.R` | Sample metadata with `Barcode` and `tissue_type` columns |
-| `CC.csv` | ML scripts | Feature matrix for cervical cancer samples |
-| `HNC.csv` | ML scripts | Feature matrix for head and neck cancer samples |
+| `CC_data.csv` | Python panel scripts | Standardised cervical cohort matrix with `Sample_ID`, `Label`, and gene columns |
+| `HNC_data.csv` | Python panel scripts | Standardised head and neck cohort matrix with `Sample_ID`, `Label`, and gene columns |
+| `CC CESC_HPV_VST_52genes (1).csv` | `standardise.py` | Raw CC matrix used to generate `CC_data.csv` |
+| `HNC VST_genes_of_interest_HPVpos_vs_HPVneg.xlsx` | `standardise.py` | Raw HNC matrix used to generate `HNC_data.csv` |
+| `CC GSE151666_HPV_VST_52genes.csv` | `geo_external_test.py` | External GEO cervical validation cohort |
+| `HNC VST_genes_of_interest_GSE74927_HPVpos_vs_HPVneg.xlsx` | `geo_external_test.py` | External GEO head and neck validation cohort |
 | `gencode.v48.basic.annotation.gtf.gz` | `Infercnv.R` | GENCODE v48 gene annotation file — download from [GENCODE](https://www.gencodegenes.org/human/release_48.html) |
 
 ---
@@ -97,19 +105,48 @@ Run `DEG_Code.R` to perform DESeq2-based differential expression between tumor a
 
 Run `WGCNA.R` to construct a signed co-expression network, identify modules correlated with tumor status, and export gene lists for downstream analysis.
 
-### 3. Machine Learning Feature Selection
+### 3. Prepare and Standardise Input Matrices
 
-Each Python script evaluates every candidate gene as a single-feature classifier across CC and HNC datasets. Results are ranked by average accuracy across both datasets:
+Use `standardise.py` to harmonise sample ID and label columns and generate `CC_data.csv` and `HNC_data.csv`:
 
 ```bash
-python RF_single_feature.py
-python SVM_single_feature.py
-# ... repeat for other classifiers
+python standardise.py
 ```
 
-Output CSVs are saved to a dedicated results folder (e.g., `RF_Results/` for Random Forest, `SVM_Results/` for SVM, and so on for each classifier).
+### 4. Model-free Separability Ranking
 
-### 4. Single-cell Validation
+Run per-gene separability and consistency analysis across CC and HNC:
+
+```bash
+python gene_separability.py
+```
+
+This writes `Separability_Results/separability_{CC,HNC}.csv` and `Separability_Results/separability_combined.csv`.
+
+### 5. Multivariate Panel Selection and Panel-size Sweep
+
+Build the compact panel using stability selection + mRMR, then evaluate performance across panel sizes:
+
+```bash
+python gene_panel_selection.py
+python panel_size_sweep.py
+python plot_panel_sweep.py
+```
+
+Outputs are written to `Panel_Selection_Results/`.
+
+### 6. External GEO Validation and Figure Generation
+
+Validate the selected panel on external GEO cohorts and generate manuscript figures:
+
+```bash
+python geo_external_test.py
+python make_figures.py
+```
+
+Outputs are written to `GEO_test/` and `Manuscript_Results/figures/`.
+
+### 7. Single-cell Validation
 
 Run `pseudo-bulk degs.R` for pseudobulk DEG analysis, `Infercnv.R` for copy number inference, and `cell chat.R` for cell–cell communication profiling within the tumor microenvironment.
 
