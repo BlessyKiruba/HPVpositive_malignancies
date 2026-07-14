@@ -30,9 +30,7 @@ The analysis pipeline integrates the following computational approaches in seque
 | 4 | Multivariate Gene Panel Selection + Panel Size Sweep | `gene_panel_selection.py`, `panel_size_sweep.py`, `plot_panel_sweep.py` |
 | 5 | External GEO Validation of Selected Panel | `geo_external_test.py` |
 | 6 | Manuscript Figure Generation | `make_figures.py` |
-| 7 | Single-cell RNA-seq Validation (Pseudobulk DEG) | `pseudo-bulk degs.R` |
-| 8 | Copy Number Variation Inference (inferCNV) | `Infercnv.R` |
-| 9 | Tumor Microenvironment & Cell–Cell Communication | `cell chat.R` |
+| 7 | Tumor Microenvironment & Cell–Cell Communication | `cell chat.R` |
 
 ---
 
@@ -43,8 +41,6 @@ HPVpositive_malignancies/
 │
 ├── DEG_Code.R               # Bulk RNA-seq differential gene expression (DESeq2)
 ├── WGCNA.R                  # Co-expression network construction and module–trait analysis
-├── pseudo-bulk degs.R       # Pseudobulk DEG analysis from scRNA-seq data
-├── Infercnv.R               # Copy number variation inference from scRNA-seq (inferCNV)
 ├── cell chat.R              # Cell–cell communication analysis (CellChat)
 │
 ├── standardise.py           # Standardises labels/columns and writes CC_data.csv + HNC_data.csv
@@ -64,7 +60,7 @@ HPVpositive_malignancies/
 
 ```r
 install.packages(c("ggplot2", "dplyr", "reshape2", "gridExtra", "writexl", "readxl", "cowplot"))
-BiocManager::install(c("DESeq2", "WGCNA", "GEOquery", "Seurat", "infercnv", "rtracklayer"))
+BiocManager::install(c("DESeq2", "WGCNA", "GEOquery", "Seurat", "rtracklayer"))
 # CellChat — install from GitHub (see https://github.com/sqjin/CellChat for full instructions)
 devtools::install_github("sqjin/CellChat")
 ```
@@ -148,7 +144,7 @@ Outputs are written to `GEO_test/` and `Manuscript_Results/figures/`.
 
 ### 7. Single-cell Validation
 
-Run `pseudo-bulk degs.R` for pseudobulk DEG analysis, `Infercnv.R` for copy number inference, and `cell chat.R` for cell–cell communication profiling within the tumor microenvironment.
+ `cell chat.R` for cell–cell communication profiling within the tumor microenvironment.
 
 ---
 
